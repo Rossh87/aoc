@@ -78,3 +78,17 @@ func TestMain(t *testing.T) {
 
 	expect(95437, f.solve(), t)
 }
+
+func TestMainPartTwo(t *testing.T) {
+	f := newFS()
+
+	scanner := bufio.NewScanner(strings.NewReader(testInput))
+
+	for scanner.Scan() {
+		ln := scanner.Text()
+
+		f.ingestLine(ln)
+	}
+
+	expect(24933642, f.solvePartTwo(), t)
+}

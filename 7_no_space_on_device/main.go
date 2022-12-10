@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -48,21 +49,16 @@ func getDirSizes(t tree) []tree {
 			}
 		}
 
-		// fmt.Printf("recursive dir size for %s: %d\n", currNode.name, currNode.size)
-
 		res = append(res, currNode)
 		return currNode.size
 	}
 
 	setSizes(t)
-	fmt.Printf("%+v\n", res)
 
 	return res
 }
 
 func sumDirs(dirs []tree) int64 {
-	// fmt.Println(dirs)
-
 	var sum int64 = 0
 
 	for _, d := range dirs {
@@ -104,7 +100,6 @@ func (f *fs) cd(dest string) {
 		}
 
 	}
-	fmt.Printf("changed directory, now at %s\n", f.currNode.path)
 }
 
 func childPathName(parentNode tree, name string) string {
@@ -149,7 +144,6 @@ func (f *fs) ingestLine(ln string) {
 			f.cd(fields[2])
 		}
 	case "dir":
-		// fmt.Printf("appending dir %s\n", fields[1])
 		f.appendDir(fields[1])
 	default:
 		size64, _ := strconv.ParseInt(fields[0], 10, 64)
@@ -160,6 +154,33 @@ func (f *fs) ingestLine(ln string) {
 
 func (f *fs) solve() int64 {
 	return sumDirs(getDirSizes(*f.tree))
+}
+
+const (
+	totalAvailable int64 = 7e7
+	required       int64 = 3e7
+)
+
+func (f *fs) solvePartTwo() int64 {
+	dirs := getDirSizes(*f.tree)
+
+	sort.Slice(dirs, func(i, j int) bool {
+		return dirs[i].size < dirs[j].size
+	})
+
+	rootUse := dirs[len(dirs)-1].size
+
+	currUnused := totalAvailable - rootUse
+
+	for _, d := range dirs {
+		availableIfDirDeleted := currUnused + d.size
+
+		if availableIfDirDeleted >= required {
+			return d.size
+		}
+	}
+
+	return 0
 }
 
 func newFS() *fs {
@@ -198,5 +219,5 @@ func main() {
 		f.ingestLine(line)
 	}
 
-	fmt.Println(f.solve())
+	fmt.Println(f.solvePartTwo())
 }
