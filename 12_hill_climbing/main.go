@@ -8,6 +8,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"sync"
 )
 
 func main() {
@@ -19,7 +20,7 @@ func main() {
 
 	defer file.Close()
 
-	fmt.Println(navigate(file).g)
+	fmt.Println(navigateTwo(file))
 }
 
 type grid [][]int
@@ -64,9 +65,10 @@ type cell struct {
 }
 
 type parsingResult struct {
-	g      grid
-	source coord
-	dest   coord
+	g         grid
+	source    coord
+	dest      coord
+	lowPoints []coord
 }
 
 type directions [4]coord
@@ -75,8 +77,9 @@ func newParsingResult() parsingResult {
 	s := coord{}
 	d := coord{}
 	g := [][]int{}
+	l := []coord{}
 
-	return parsingResult{g, s, d}
+	return parsingResult{g, s, d, l}
 }
 
 func charToHeight(c rune) int {
@@ -99,12 +102,17 @@ func parseInput(input io.Reader) parsingResult {
 				row[rnIdx] = 0
 				res.source.x = rnIdx
 				res.source.y = currRow
+				res.lowPoints = append(res.lowPoints, coord{rnIdx, currRow})
 			case 'E':
 				row[rnIdx] = 25
 				res.dest.x = rnIdx
 				res.dest.y = currRow
 			default:
-				row[rnIdx] = charToHeight(rn)
+				height := charToHeight(rn)
+				row[rnIdx] = height
+				if height == 0 {
+					res.lowPoints = append(res.lowPoints, coord{rnIdx, currRow})
+				}
 			}
 			rnIdx++
 		}
@@ -272,20 +280,17 @@ func isEligible(neighbor, current ICoord, g grid) bool {
 	return neighborHeight-currentHeight <= 1
 }
 
-// Returns cell representing destination.
-func navigate(input io.Reader) cell {
-	parsed := parseInput(input)
-
+func calcDistance(input parsingResult, start coord) cell {
 	// initialize stores
 	openQueue := newOpenQ()
 	closedList := make(closeList)
 
 	sourceCell := cell{}
-	sourceCell.coord = parsed.source
+	sourceCell.coord = start
 
 	// it costs no movement to get to the starting cell
 	sourceCell.g = 0
-	sourceCell.h = calcH(parsed.dest, sourceCell)
+	sourceCell.h = calcH(input.dest, sourceCell)
 	sourceCell.f = sourceCell.g + sourceCell.h
 
 	openQueue.push(sourceCell)
@@ -303,10 +308,10 @@ func navigate(input io.Reader) cell {
 			neighbY := currentCell.Y() + dir.Y()
 			neighbor := coord{neighbX, neighbY}
 
-			if isEligible(neighbor, currentCell, parsed.g) {
-				neighborCell := newNeighbor(currentCell, neighbX, neighbY, parsed.dest)
+			if isEligible(neighbor, currentCell, input.g) {
+				neighborCell := newNeighbor(currentCell, neighbX, neighbY, input.dest)
 
-				if neighborCell.String() == parsed.dest.String() {
+				if neighborCell.String() == input.dest.String() {
 					return neighborCell
 				}
 
@@ -345,4 +350,66 @@ func navigate(input io.Reader) cell {
 	}
 
 	return cell{}
+}
+
+func calcForConcurrent(input parsingResult, start coord, output *[]cell, pos int) {
+	res := calcDistance(input, start)
+
+	(*output)[pos] = res
+}
+
+func intMin(a, b int) int {
+	if a < b {
+		return a
+	}
+
+	return b
+}
+
+// Returns cell representing destination.
+func navigate(input io.Reader) cell {
+	parsed := parseInput(input)
+
+	return calcDistance(parsed, parsed.source)
+}
+
+func navigateTwo(r io.Reader) int {
+	parsed := parseInput(r)
+
+	results := make([]cell, len(parsed.lowPoints))
+
+	var wg sync.WaitGroup
+	waitCount := len(parsed.lowPoints)
+	for waitCount > 0 {
+		wg.Add(1)
+		waitCount--
+	}
+
+	for idx, startCoord := range parsed.lowPoints {
+		// careful with closure...
+		s := startCoord
+		i := idx
+		go func() {
+			defer wg.Done()
+			calcForConcurrent(parsed, s, &results, i)
+		}()
+	}
+
+	wg.Wait()
+
+	fmt.Println(results)
+	var minDist int
+
+	for _, c := range results {
+		if c.g == 0 {
+			continue
+		}
+		if minDist == 0 {
+			minDist = c.g
+		} else {
+			minDist = intMin(minDist, c.g)
+		}
+	}
+
+	return minDist
 }

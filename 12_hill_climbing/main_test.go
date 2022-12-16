@@ -19,3 +19,12 @@ func TestNavigate(t *testing.T) {
 		t.Fatalf("expected %d, but got %d", want, got)
 	}
 }
+
+func TestNavigateTwo(t *testing.T) {
+	want := 29
+	got := navigateTwo(strings.NewReader(testInput))
+
+	if want != got {
+		t.Fatalf("expected %d, but got %d", want, got)
+	}
+}
