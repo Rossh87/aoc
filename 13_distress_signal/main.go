@@ -6,17 +6,27 @@ import (
 	"io"
 	"log"
 	"os"
+	"reflect"
+	"sort"
 )
 
 func main() {
 	file, _ := os.Open("./input.txt")
 
-	res := getOrderedPairSum(file)
+	res := getDividerProduct(file)
 
 	fmt.Println(res)
 }
 
-func isOrderedPair(first, second []any, idx int) bool {
+type pairStatus int
+
+const (
+	valid pairStatus = iota
+	invalid
+	inconclusive
+)
+
+func isOrderedPair(first, second []any, idx int) pairStatus {
 	var l any
 
 	if idx > len(first)-1 {
@@ -35,18 +45,18 @@ func isOrderedPair(first, second []any, idx int) bool {
 
 	// we've run out of elements...
 	if l == nil || r == nil {
-		// everything preceding was true if we got here, so we're done
+		// if we get to this point, everything up to idx was equal, so we don't have an answer
 		if l == nil && r == nil {
-			return true
+			return inconclusive
 		}
 
 		// if left runs out first, we're done
 		if l == nil {
-			return true
+			return valid
 		}
 
 		// otherwise it's out-of-order
-		return false
+		return invalid
 	}
 
 	switch lType := l.(type) {
@@ -55,26 +65,43 @@ func isOrderedPair(first, second []any, idx int) bool {
 		// int int
 		case int:
 			if lType > rType {
-				return false
+				return invalid
 			}
+
+			if lType < rType {
+				return valid
+			}
+
 			return isOrderedPair(first, second, idx+1)
 		// int []any
 		case []any:
-			first[idx] = []any{lType}
-			return isOrderedPair(first, second, idx)
+			// make copies--if we mutate slices in-place, it messes up part 2
+			double := make([]any, len(first))
+			copy(double, first)
+			double[idx] = []any{lType}
+			return isOrderedPair(double, second, idx)
 		default:
 			log.Fatalf("received unexpected types at idx %d in %v", idx, second)
 		}
 
 	case []any:
 		switch rType := r.(type) {
-		// []int int
+		// []any int
 		case int:
-			second[idx] = []any{rType}
-			return isOrderedPair(first, second, idx)
-		// []int []any
+			// make copies--if we mutate slices in-place, it messes up part 2
+			double := make([]any, len(second))
+			copy(double, second)
+			double[idx] = []any{rType}
+			return isOrderedPair(first, double, idx)
+		// []any []any
 		case []any:
-			return isOrderedPair(lType, rType, 0)
+			subResult := isOrderedPair(lType, rType, 0)
+
+			if subResult == inconclusive {
+				return isOrderedPair(first, second, idx+1)
+			}
+
+			return subResult
 		default:
 			log.Fatalf("received unexpected types at idx %d in %v", idx, second)
 		}
@@ -82,7 +109,7 @@ func isOrderedPair(first, second []any, idx int) bool {
 		log.Fatalf("received unexpected types at idx %d in %v", idx, first)
 	}
 
-	return false
+	return invalid
 }
 
 type Pair struct {
@@ -98,7 +125,7 @@ func getOrderedPairIndices(p Pairs) []int {
 	result := []int{}
 
 	for idx, pair := range p {
-		if isOrderedPair(pair.left, pair.right, 0) {
+		if isOrderedPair(pair.left, pair.right, 0) == valid {
 			result = append(result, idx)
 		}
 	}
@@ -187,4 +214,54 @@ func getOrderedPairSum(r io.Reader) int {
 	}
 
 	return Sum
+}
+
+type Packet []any
+
+type Packets []Packet
+
+func packPackets(r io.Reader, pax *Packets) {
+	scanner := bufio.NewScanner(r)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		if line == "" {
+			continue
+		}
+
+		s, _ := stringToSlice([]rune(line), 0)
+		*pax = append(*pax, s)
+	}
+}
+
+func sortPackets(r io.Reader) Packets {
+	pax := Packets{[]any{[]any{2}}, []any{[]any{6}}}
+
+	packPackets(r, &pax)
+
+	sort.Slice(pax, func(i, j int) bool {
+		return isOrderedPair(pax[i], pax[j], 0) == valid
+	})
+
+	return pax
+}
+
+func getDividerProduct(r io.Reader) int {
+	sorted := sortPackets(r)
+
+	var ans [2]int
+
+	for i, el := range sorted {
+		// remember to account for 1-indexing
+		if reflect.DeepEqual(Packet{[]any{2}}, el) {
+			ans[0] = i + 1
+		}
+
+		if reflect.DeepEqual(Packet{[]any{6}}, el) {
+			ans[1] = i + 1
+		}
+	}
+
+	return ans[0] * ans[1]
 }

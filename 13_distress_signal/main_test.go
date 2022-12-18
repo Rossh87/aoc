@@ -9,7 +9,7 @@ import (
 type testCase struct {
 	left   []any
 	right  []any
-	expect bool
+	expect pairStatus
 }
 
 type testCases []testCase
@@ -19,7 +19,7 @@ func runCases(tcs testCases, t *testing.T) {
 		got := isOrderedPair(tc.left, tc.right, 0)
 
 		if got != tc.expect {
-			t.Fatalf("left: %+v\nright: %+v\nexpected: %t\ngot: %t\n", tc.left, tc.right, tc.expect, got)
+			t.Fatalf("left: %+v\nright: %+v\nexpected: %d\ngot: %d\n", tc.left, tc.right, tc.expect, got)
 		}
 	}
 }
@@ -27,43 +27,43 @@ func runCases(tcs testCases, t *testing.T) {
 var case1 = testCase{
 	[]any{1, 1, 3, 1, 1},
 	[]any{1, 1, 5, 1, 1},
-	true,
+	valid,
 }
 
 var case2 = testCase{
 	[]any{[]any{1}, []any{2, 3, 4}},
 	[]any{[]any{1}, 4},
-	true,
+	valid,
 }
 
 var case3 = testCase{
 	[]any{9},
 	[]any{[]any{8, 7, 6}},
-	false,
+	invalid,
 }
 
 var case4 = testCase{
 	[]any{[]any{4, 4}, 4, 4},
 	[]any{[]any{4, 4}, 4, 4, 4},
-	true,
+	valid,
 }
 
 var case5 = testCase{
 	[]any{7, 7, 7, 7},
 	[]any{7, 7, 7},
-	false,
+	invalid,
 }
 
 var case6 = testCase{
 	make([]any, 0),
 	[]any{3},
-	true,
+	valid,
 }
 
 var case7 = testCase{
 	[]any{[]any{[]any{}}},
 	[]any{[]any{}},
-	false,
+	invalid,
 }
 
 func TestIsOrderedPair(t *testing.T) {
@@ -122,6 +122,16 @@ func TestGetOrderedPairSum(t *testing.T) {
 	want := 13
 
 	got := getOrderedPairSum(strings.NewReader(testInput))
+
+	if want != got {
+		t.Fatalf("expected %d, received  %d", want, got)
+	}
+}
+
+func TestGetDividerProduct(t *testing.T) {
+	want := 140
+
+	got := getDividerProduct(strings.NewReader(testInput))
 
 	if want != got {
 		t.Fatalf("expected %d, received  %d", want, got)
