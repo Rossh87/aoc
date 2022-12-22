@@ -54,3 +54,11 @@ func TestMaxFlow(t *testing.T) {
 		t.Fatalf("expected %+v, received %+v", want, got)
 	}
 }
+
+// func TestMaxFlowPartTwo(t *testing.T) {
+// 	want := 1707
+// 	got := maxFlowPartTwo(strings.NewReader(testInput))
+// 	if got != want {
+// 		t.Fatalf("expected %+v, received %+v", want, got)
+// 	}
+// }

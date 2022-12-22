@@ -190,3 +190,27 @@ func solve(vs valves, start string, simTime int) int {
 
 	return maxFlow
 }
+
+func valveSubsets(vs []valve, result *[][]valve, current *[]valve, pos int) {
+	max := len(vs)
+	if pos >= max {
+		out := make([]valve, len(*current))
+		copy(out, *current)
+		*result = append(*result, out)
+		return
+	}
+
+	v := vs[pos]
+	*current = append(*current, v)
+	valveSubsets(vs, result, current, pos+1)
+	*current = (*current)[:len(*current)-1]
+	fmt.Println(len(*current))
+	valveSubsets(vs, result, current, pos+1)
+}
+
+// Each agent has identical capabilities, so we should be able to do the following:
+// 1. Generate every subset of open valves, and its complement.
+// 2. For every subset/complement pair, run 'solve' with 26 minutes of time with the subset, then again with its complement.
+// 3. Add the results of each subset complement pair, and compare the result with current maximum.
+// If the result is greater than the maximum, update the running answer.
+// Return answer.
