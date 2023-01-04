@@ -191,6 +191,10 @@ type Rocks struct {
 	nextShape int
 }
 
+func (rs Rocks) Peek() int {
+	return rs.nextShape
+}
+
 func (rs *Rocks) Next(pileHeight int) Rock {
 	shape := rs.shapes[rs.nextShape]
 	ns := (rs.nextShape + 1) % len(rs.shapes)

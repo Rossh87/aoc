@@ -9,7 +9,7 @@ const (
 
 type Jets struct {
 	directions []Push
-	currByte   int
+	nextPush   int
 }
 
 func New(rawDirs string) *Jets {
@@ -19,7 +19,12 @@ func New(rawDirs string) *Jets {
 }
 
 func (j *Jets) Next() Push {
-	dir := j.directions[j.currByte]
-	j.currByte = (j.currByte + 1) % len(j.directions)
+	dir := j.directions[j.nextPush]
+	j.nextPush++
+	j.nextPush %= len(j.directions)
 	return dir
+}
+
+func (j Jets) Peek() int {
+	return j.nextPush
 }

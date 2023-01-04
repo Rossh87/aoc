@@ -17,7 +17,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ans := solveOne(string(bytes))
+	ans := solveTwo(string(bytes), 1e12)
 	fmt.Println(ans)
 }
 
@@ -34,16 +34,62 @@ func main() {
 // 3. maxHeight += currHeight + (cycleCount * heightPerCycle)
 // 4. settledRemaining %= settledPerCycle
 // Finally, run sim to completion for settledRemaining
+func hash(nextJet, nextShape int, cont chamber.Contour) string {
+	return fmt.Sprintf("%d-%d-%s", nextJet, nextShape, cont.Normalized().String())
+}
+
+type cacheState struct {
+	settled int
+	height  int
+}
+
+type cache map[string]cacheState
+
 func solveOne(rawDirs string) int {
 	js := jets.New(rawDirs)
 	rocks := rocks.New()
 	chamber := chamber.New(7)
-	stoppedCount := 0
+	settled := 0
 
-	for stoppedCount < 2022 {
+	for settled < 2022 {
 		chamber.AddRock(rocks, js)
-		stoppedCount++
+		settled++
 	}
 
 	return chamber.PileHeight()
+}
+
+func solveTwo(rawDirs string, target int64) int64 {
+	js := jets.New(rawDirs)
+	rocks := rocks.New()
+	chamber := chamber.New(7)
+	cache := make(cache)
+	var settled int64 = 0
+	var heightFromSkippedCycles int64 = 0
+
+	for int64(settled) < target {
+		chamber.AddRock(rocks, js)
+		settled++
+		hashKey := hash(js.Peek(), rocks.Peek(), chamber.Contour())
+		cached, exists := cache[hashKey]
+
+		// if we've never seen this state before, add it to cache and continue
+		// NB we're banking here on getting a chache hit before settled grows
+		// large enough to overflow a 32-bit int.
+		if !exists {
+			cache[hashKey] = cacheState{int(settled), chamber.PileHeight()}
+			continue
+		}
+
+		// if we've found a cycle, fast-forward through as many cycles
+		// as possible, then let loop finish the remainder
+		heightAddedPerCycle := int64(chamber.PileHeight() - cached.height)
+		settledAddedPerCycle := int(settled) - cached.settled
+		unsettled := target - int64(settled)
+		possibleCycles := unsettled / int64(settledAddedPerCycle)
+		heightFromSkippedCycles = possibleCycles * heightAddedPerCycle
+		settled += possibleCycles * int64(settledAddedPerCycle)
+	}
+
+	return int64(chamber.PileHeight()) + heightFromSkippedCycles
 }
