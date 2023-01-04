@@ -4,7 +4,7 @@ import "fmt"
 
 type Point struct {
 	X int
-	Y int
+	Y int64
 }
 
 func (p Point) String() string {

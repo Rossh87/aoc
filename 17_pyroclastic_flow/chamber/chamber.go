@@ -32,12 +32,14 @@ func (oc *occupied) setOccupied(r rocks.Rock) {
 	}
 }
 
-type Contour [7]int
+type Contour [7]int64
 
 func (c *Contour) Update(r rocks.Rock) {
 	// positions in grid are 1-indexed, so we account for that here
 	for _, p := range r.List() {
-		c[p.X-1] = intMax(c[p.X-1], p.Y)
+		if p.Y > c[p.X-1] {
+			c[p.X-1] = p.Y
+		}
 	}
 }
 
@@ -51,7 +53,7 @@ func (c Contour) String() string {
 
 // get relative heights from absolute heights
 func (c Contour) Normalized() Contour {
-	min := math.MaxInt
+	var min int64 = math.MaxInt64
 	for _, el := range c {
 		if el < min {
 			min = el
@@ -68,29 +70,26 @@ func (c Contour) Normalized() Contour {
 type Chamber struct {
 	width      int
 	occ        occupied
-	pileHeight int
-	// contour stores the uppermost occupied position in each column. Theoretically,
+	pileHeight int64
+	// Contour stores the highest occupied position in each column. Theoretically,
 	// this represents a 'fingerprint' that, when combined with the current shape and
-	// jet index, form the hash of a cycle that will repeat
+	// jet index, identify a state of the chamber that will repeat itself in a cycle.
+	// Gratitude to https://codeberg.org/matta/advent-of-code-go/src/branch/main/2022/day17/main_test.go
+	// for the idea of using the 'silhouette' of settled rocks to contribute to
+	// the hash, and to https://github.com/hugseverycat/aoc2022/blob/main/day17.py
+	// for inspiring the idea of tracking the silhouette as we add rocks rather than doing a BFS
+	// or something more complicated.
 	contour Contour
 }
 
 func New(width int) *Chamber {
 	occ := make(occupied)
-	contour := [7]int{-1, -1, -1, -1, -1, -1, -1}
+	contour := [7]int64{0, 0, 0, 0, 0, 0, 0}
 	cham := Chamber{width, occ, 0, contour}
 	return &cham
 }
 
-func intMax(a, b int) int {
-	if a > b {
-		return a
-	}
-
-	return b
-}
-
-func (cham *Chamber) PileHeight() int {
+func (cham *Chamber) PileHeight() int64 {
 	return cham.pileHeight
 }
 
@@ -106,6 +105,7 @@ func (cham *Chamber) AddRock(rs *rocks.Rocks, js *jets.Jets) {
 	}
 	cham.occ.setOccupied(rock)
 	cham.contour.Update(rock)
-	max := intMax(cham.pileHeight, rock.MaxHeight())
-	cham.pileHeight = max
+	if rock.MaxHeight() > cham.pileHeight {
+		cham.pileHeight = rock.MaxHeight()
+	}
 }

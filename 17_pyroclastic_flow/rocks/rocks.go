@@ -15,14 +15,7 @@ const (
 	Square
 )
 
-func intMax(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
-func makePoints(start point.Point, deltas []point.Point) ([]point.Point, int) {
+func makePoints(start point.Point, deltas []point.Point) ([]point.Point, int64) {
 	yMax := start.Y
 	out := make([]point.Point, len(deltas)+1)
 	out[0] = start
@@ -32,40 +25,42 @@ func makePoints(start point.Point, deltas []point.Point) ([]point.Point, int) {
 		nx := start.X + dx
 		ny := start.Y + dy
 		out[i+1] = point.Point{X: nx, Y: ny}
-		yMax = intMax(yMax, ny)
+		if ny > yMax {
+			yMax = ny
+		}
 	}
 	return out, yMax
 }
 
-func makeMinus(pileHeight int) Rock {
+func makeMinus(pileHeight int64) Rock {
 	start := point.Point{X: 3, Y: pileHeight + 4}
 	deltas := []point.Point{{X: 1, Y: 0}, {X: 2, Y: 0}, {X: 3, Y: 0}}
 	points, maxHeight := makePoints(start, deltas)
 	return Rock{Minus, points, false, maxHeight}
 }
 
-func makePlus(pileHeight int) Rock {
+func makePlus(pileHeight int64) Rock {
 	start := point.Point{X: 3, Y: pileHeight + 5}
 	deltas := []point.Point{{X: 1, Y: 0}, {X: 2, Y: 0}, {X: 1, Y: 1}, {X: 1, Y: -1}}
 	points, maxHeight := makePoints(start, deltas)
 	return Rock{Plus, points, false, maxHeight}
 }
 
-func makeBracket(pileHeight int) Rock {
+func makeBracket(pileHeight int64) Rock {
 	start := point.Point{X: 3, Y: pileHeight + 4}
 	deltas := []point.Point{{X: 1, Y: 0}, {X: 2, Y: 0}, {X: 2, Y: 1}, {X: 2, Y: 2}}
 	points, maxHeight := makePoints(start, deltas)
 	return Rock{Bracket, points, false, maxHeight}
 }
 
-func makeColumn(pileHeight int) Rock {
+func makeColumn(pileHeight int64) Rock {
 	start := point.Point{X: 3, Y: pileHeight + 4}
 	deltas := []point.Point{{X: 0, Y: 1}, {X: 0, Y: 2}, {X: 0, Y: 3}}
 	points, maxHeight := makePoints(start, deltas)
 	return Rock{Column, points, false, maxHeight}
 }
 
-func makeSquare(pileHeight int) Rock {
+func makeSquare(pileHeight int64) Rock {
 	start := point.Point{X: 3, Y: pileHeight + 4}
 	deltas := []point.Point{{X: 1, Y: 0}, {X: 1, Y: 1}, {X: 0, Y: 1}}
 	points, maxHeight := makePoints(start, deltas)
@@ -145,7 +140,7 @@ type Rock struct {
 	kind      Shape
 	points    []point.Point
 	stopped   bool
-	maxHeight int
+	maxHeight int64
 }
 
 func (r *Rock) Move(dir jets.Push, b blocked) {
@@ -182,7 +177,7 @@ func (r Rock) List() []point.Point {
 	return r.points
 }
 
-func (r Rock) MaxHeight() int {
+func (r Rock) MaxHeight() int64 {
 	return r.maxHeight
 }
 
@@ -195,7 +190,7 @@ func (rs Rocks) Peek() int {
 	return rs.nextShape
 }
 
-func (rs *Rocks) Next(pileHeight int) Rock {
+func (rs *Rocks) Next(pileHeight int64) Rock {
 	shape := rs.shapes[rs.nextShape]
 	ns := (rs.nextShape + 1) % len(rs.shapes)
 	rs.nextShape = ns
