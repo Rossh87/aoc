@@ -21,13 +21,41 @@ lgvd: ljgn * ptdq
 drzm: hmdt - zczc
 hmdt: 32`
 
-func TestParseTask(t *testing.T) {
-
-}
-
 func TestSolvePartOne(t *testing.T) {
 	want := 152
 	got := solvePartOne(strings.NewReader(testInput))
+	if got != want {
+		t.Fatalf("expected %d, got %d", want, got)
+	}
+}
+
+func TestFindEqualityTarget(t *testing.T) {
+	s := make(satisfactionMap)
+	ts := parseInput(strings.NewReader(testInput), &s)
+	want := 150
+	got := findEqualityTarget(ts, &s)
+	if got != want {
+		t.Fatalf("expected %d, got %d", want, got)
+	}
+}
+
+func TestUnwindStack(t *testing.T) {
+	stack := opStack{
+		{'+', 3},
+		{'/', 2},
+		{'-', 4},
+		{'*', 4},
+	}
+	want := 301
+	got := unwindStack(150, stack)
+	if got != want {
+		t.Fatalf("expected %d, got %d", want, got)
+	}
+}
+
+func TestSolvePartTwo(t *testing.T) {
+	want := 301
+	got := solvePartTwo(strings.NewReader(testInput))
 	if got != want {
 		t.Fatalf("expected %d, got %d", want, got)
 	}
